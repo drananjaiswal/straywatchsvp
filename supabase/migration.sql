@@ -29,17 +29,44 @@ alter table sightings
 alter table sightings
   drop column if exists dedupe_hash;
 
+drop trigger if exists set_dedupe_hash on sightings;
+
+drop function if exists sightings_set_dedupe_hash();
+
 alter table sightings
-  add column dedupe_hash text generated always as (
-    md5(
-      concat_ws(
-        '|',
-        round(latitude::numeric, 3)::text,
-        round(longitude::numeric, 3)::text,
-        date_trunc('hour', created_at)::text
-      )
+  add column dedupe_hash text;
+
+create or replace function sightings_set_dedupe_hash()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.dedupe_hash := md5(
+    concat_ws(
+      '|',
+      round(new.latitude::numeric, 3)::text,
+      round(new.longitude::numeric, 3)::text,
+      date_trunc('hour', new.created_at)::text
     )
-  ) stored;
+  );
+  return new;
+end;
+$$;
+
+create trigger set_dedupe_hash
+before insert or update on sightings
+for each row
+execute function sightings_set_dedupe_hash();
+
+update sightings
+set dedupe_hash = md5(
+  concat_ws(
+    '|',
+    round(latitude::numeric, 3)::text,
+    round(longitude::numeric, 3)::text,
+    date_trunc('hour', created_at)::text
+  )
+);
 
 alter table sightings
   add constraint sightings_dedupe_hash_unique unique (dedupe_hash);
