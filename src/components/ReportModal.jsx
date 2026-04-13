@@ -99,27 +99,34 @@ export default function ReportModal({ onClose, onSuccess }) {
     if (!location || !ward) return
     setSubmitting(true)
     setSubmitError('')
-    const { error } = await submitSighting({
-      latitude: location.lat,
-      longitude: location.lng,
-      ward_id: ward.ward_id,
-      ward_name: ward.ward_name,
-      dog_count: dogCount,
-      notes: notes.trim() || null,
-      address
-    })
-    setSubmitting(false)
-    if (error) {
-      if (error.code === '23505') {
-        setIsDuplicate(true)
-        setSubmitted(true)
-      } else {
-        setSubmitError('Submission failed. Please try again.')
+    try {
+      const { error } = await submitSighting({
+        latitude: location.lat,
+        longitude: location.lng,
+        ward_id: ward.ward_id,
+        ward_name: ward.ward_name,
+        dog_count: dogCount,
+        notes: notes.trim() || null,
+        address
+      })
+      setSubmitting(false)
+      if (error) {
+        if (error.code === '23505') {
+          setIsDuplicate(true)
+          setSubmitted(true)
+        } else {
+          console.error('[StrayWatch] Submit error in modal:', error)
+          setSubmitError(`Submission failed (${error.code || error.message || 'unknown error'}). Please try again.`)
+        }
+        return
       }
-      return
+      setSubmitted(true)
+      onSuccess && onSuccess(ward.ward_name)
+    } catch (e) {
+      setSubmitting(false)
+      console.error('[StrayWatch] Unexpected submit exception:', e)
+      setSubmitError('Submission failed. Please check your connection and try again.')
     }
-    setSubmitted(true)
-    onSuccess && onSuccess(ward.ward_name)
   }
 
   // ── Success / Duplicate screen ──
