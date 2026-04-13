@@ -138,7 +138,7 @@ export default function ReportModal({ onClose, onSuccess }) {
           {isDuplicate ? (
             <>
               <h3 className="text-base font-semibold text-gray-800 mb-2">Already recorded nearby</h3>
-              <p className="text-sm text-gray-500">A sighting near this location was already recorded in the last hour. Your observation strengthens the existing record.</p>
+              <p className="text-sm text-gray-500">A sighting near this location was already recorded in the last hour, so no new entry was added.</p>
             </>
           ) : (
             <>

@@ -12,6 +12,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // RLS blocks the post-insert SELECT, causing false "Submission failed" errors
 // even when the INSERT succeeded. We use .select() without .single() and
 // treat PGRST116 (no rows returned) as a success.
+const DEDUPE_CONSTRAINT = 'sightings_dedupe_hash_unique'
+
 export async function submitSighting({ latitude, longitude, ward_id, ward_name, dog_count, notes, address }) {
   const { data, error } = await supabase
     .from('sightings')
@@ -23,7 +25,7 @@ export async function submitSighting({ latitude, longitude, ward_id, ward_name, 
     console.error('[StrayWatch] submitSighting error:', JSON.stringify(error))
 
     // Dedupe hash collision — treat as soft duplicate, not a hard error
-    if (error.code === '23505' || (error.message && error.message.includes('dedupe_hash'))) {
+    if (error.code === '23505' && error.constraint === DEDUPE_CONSTRAINT) {
       return { data: null, error: { code: '23505', message: 'duplicate' } }
     }
 

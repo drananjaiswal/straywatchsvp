@@ -121,7 +121,7 @@ OSM map tiles are cached for 7 days (CacheFirst). Supabase API responses use Net
 
 ### Deduplication
 
-Each sighting generates a `dedupe_hash` in Postgres — a MD5 hash of the rounded coordinates (3 decimal places ≈ 100 m) and the truncated hour of submission. A UNIQUE constraint on this column silently rejects duplicate submissions from the same approximate location within the same clock hour. The reporter sees a friendly message; no row is inserted.
+Each sighting generates a `dedupe_hash` in Postgres — a MD5 hash of a delimiter-separated bucket made from the rounded coordinates (3 decimal places ≈ 100 m) and the truncated hour of submission. A UNIQUE constraint on this column silently rejects duplicate submissions from the same approximate location within the same clock hour. The reporter sees a friendly message, no new row is inserted, and the existing sighting is not modified.
 
 ### Corroboration
 

@@ -20,16 +20,29 @@ create table if not exists sightings (
   dog_count       integer not null default 1 check (dog_count between 1 and 10),
   notes           text check (char_length(notes) <= 150),
   address         text,
-  corroborations  integer not null default 0,
-  dedupe_hash     text generated always as (
-                    md5(
-                      round(latitude::numeric, 3)::text ||
-                      round(longitude::numeric, 3)::text ||
-                      date_trunc('hour', created_at)::text
-                    )
-                  ) stored,
-  constraint sightings_dedupe_hash_unique unique (dedupe_hash)
+  corroborations  integer not null default 0
 );
+
+alter table sightings
+  drop constraint if exists sightings_dedupe_hash_unique;
+
+alter table sightings
+  drop column if exists dedupe_hash;
+
+alter table sightings
+  add column dedupe_hash text generated always as (
+    md5(
+      concat_ws(
+        '|',
+        round(latitude::numeric, 3)::text,
+        round(longitude::numeric, 3)::text,
+        date_trunc('hour', created_at)::text
+      )
+    )
+  ) stored;
+
+alter table sightings
+  add constraint sightings_dedupe_hash_unique unique (dedupe_hash);
 
 -- RLS
 alter table sightings enable row level security;
