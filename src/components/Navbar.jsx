@@ -33,7 +33,6 @@ export default function Navbar({ onReportClick }) {
           {navLink('/', 'Home')}
           {navLink('/map', 'Heatmap')}
           {navLink('/about', 'About')}
-          {navLink('/admin', 'Admin')}
         </div>
 
         {/* Mobile hamburger */}
@@ -54,7 +53,6 @@ export default function Navbar({ onReportClick }) {
           {navLink('/', 'Home')}
           {navLink('/map', 'Heatmap')}
           {navLink('/about', 'About')}
-          {navLink('/admin', 'Admin')}
         </div>
       )}
     </nav>
