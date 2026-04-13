@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import MapPage from './pages/MapPage'
 import About from './pages/About'
+import AdminPage from './pages/AdminPage'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/map" element={<MapPage />} />
             <Route path="/about" element={<About />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
       </div>

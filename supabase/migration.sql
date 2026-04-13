@@ -20,8 +20,16 @@ create table if not exists sightings (
   dog_count       integer not null default 1 check (dog_count between 1 and 10),
   notes           text check (char_length(notes) <= 150),
   address         text,
-  corroborations  integer not null default 0
+  corroborations  integer not null default 0,
+  is_hidden       boolean not null default false,
+  hidden_at       timestamptz
 );
+
+alter table sightings
+  add column if not exists is_hidden boolean not null default false;
+
+alter table sightings
+  add column if not exists hidden_at timestamptz;
 
 alter table sightings
   drop constraint if exists sightings_dedupe_hash_unique;
@@ -71,9 +79,25 @@ set dedupe_hash = md5(
 alter table sightings
   add constraint sightings_dedupe_hash_unique unique (dedupe_hash);
 
+create table if not exists admin_users (
+  email       text primary key,
+  created_at  timestamptz not null default now()
+);
+
+create table if not exists admin_actions (
+  id               bigint generated always as identity primary key,
+  created_at       timestamptz not null default now(),
+  admin_email      text not null,
+  action           text not null,
+  affected_rows    integer not null default 0,
+  details          text
+);
+
 -- RLS
 alter table sightings enable row level security;
 alter table wards enable row level security;
+alter table admin_users enable row level security;
+alter table admin_actions enable row level security;
 
 -- anon can insert sightings
 create policy "anon insert sightings"
@@ -83,7 +107,18 @@ create policy "anon insert sightings"
 -- anon can read all sightings
 create policy "anon select sightings"
   on sightings for select to anon
-  using (true);
+  using (is_hidden = false);
+
+create policy "authenticated select visible sightings"
+  on sightings for select to authenticated
+  using (
+    is_hidden = false
+    or exists (
+      select 1
+      from admin_users
+      where email = auth.jwt()->>'email'
+    )
+  );
 
 -- anon can increment corroborations only (no other column changes)
 create policy "anon corroborate sightings"
@@ -106,6 +141,88 @@ create policy "anon corroborate sightings"
 create policy "anon select wards"
   on wards for select to anon
   using (true);
+
+create policy "admin can read own admin record"
+  on admin_users for select to authenticated
+  using (email = auth.jwt()->>'email');
+
+create or replace function is_current_user_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from admin_users
+    where email = auth.jwt()->>'email'
+  );
+$$;
+
+create or replace function hide_all_sightings(reason text default null)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  affected integer;
+  actor_email text;
+begin
+  actor_email := auth.jwt()->>'email';
+
+  if not exists (
+    select 1 from admin_users where email = actor_email
+  ) then
+    raise exception 'admin access required';
+  end if;
+
+  update sightings
+  set is_hidden = true,
+      hidden_at = now()
+  where is_hidden = false;
+
+  get diagnostics affected = row_count;
+
+  insert into admin_actions (admin_email, action, affected_rows, details)
+  values (actor_email, 'hide_all_sightings', affected, reason);
+
+  return affected;
+end;
+$$;
+
+create or replace function restore_all_sightings(reason text default null)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  affected integer;
+  actor_email text;
+begin
+  actor_email := auth.jwt()->>'email';
+
+  if not exists (
+    select 1 from admin_users where email = actor_email
+  ) then
+    raise exception 'admin access required';
+  end if;
+
+  update sightings
+  set is_hidden = false,
+      hidden_at = null
+  where is_hidden = true;
+
+  get diagnostics affected = row_count;
+
+  insert into admin_actions (admin_email, action, affected_rows, details)
+  values (actor_email, 'restore_all_sightings', affected, reason);
+
+  return affected;
+end;
+$$;
 
 -- Seed wards 1-24
 insert into wards (id, name, councillor_name, councillor_phone, councillor_email) values

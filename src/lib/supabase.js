@@ -6,6 +6,34 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+export async function getSession() {
+  const { data, error } = await supabase.auth.getSession()
+  return { data: data?.session || null, error }
+}
+
+export function onAuthStateChange(callback) {
+  return supabase.auth.onAuthStateChange((_event, session) => callback(session))
+}
+
+export async function signInAdmin(email) {
+  const { data, error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${window.location.origin}/admin`
+    }
+  })
+  return { data, error }
+}
+
+export async function signOutAdmin() {
+  return supabase.auth.signOut()
+}
+
+export async function isCurrentUserAdmin() {
+  const { data, error } = await supabase.rpc('is_current_user_admin')
+  return { data: Boolean(data), error }
+}
+
 // Submit a new sighting. Returns { data, error }.
 // error.code === '23505' means dedupe_hash collision (friendly duplicate).
 // Note: .single() removed — Safari's Supabase JS v2 throws PGRST116 when
@@ -49,9 +77,29 @@ export async function getSightings() {
   const { data, error } = await supabase
     .from('sightings')
     .select('id, latitude, longitude, ward_id, ward_name, dog_count, corroborations, created_at')
+    .eq('is_hidden', false)
     .gte('created_at', since.toISOString())
     .order('created_at', { ascending: false })
   return { data: data || [], error }
+}
+
+export async function getAdminSightings() {
+  const { data, error } = await supabase
+    .from('sightings')
+    .select('id, ward_name, created_at, is_hidden, hidden_at')
+    .order('created_at', { ascending: false })
+    .limit(500)
+  return { data: data || [], error }
+}
+
+export async function hideAllSightings(reason) {
+  const { data, error } = await supabase.rpc('hide_all_sightings', { reason: reason || null })
+  return { data, error }
+}
+
+export async function restoreAllSightings(reason) {
+  const { data, error } = await supabase.rpc('restore_all_sightings', { reason: reason || null })
+  return { data, error }
 }
 
 // Increment corroborations for a specific sighting by 1.
