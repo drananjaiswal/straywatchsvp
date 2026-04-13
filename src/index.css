@@ -2,9 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  background: #eef5f1;
+}
+
+body {
+  color: #0f172a;
+  background: transparent;
+}
+
 /* Prevent horizontal overflow on all pages */
 html, body { overflow-x: hidden; }
 
 /* Leaflet z-index fix inside modals */
 .leaflet-pane { z-index: 1; }
 .leaflet-top, .leaflet-bottom { z-index: 2; }
+
+.leaflet-control-zoom a {
+  border-radius: 14px !important;
+  color: #0f172a !important;
+}
+
+.heatmap-legend {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 16px;
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #334155;
+  box-shadow: 0 12px 32px -18px rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.heatmap-legend__title {
+  margin-bottom: 2px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.heatmap-legend__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 999px;
+}
+
+.heatmap-legend__dot--low { background: #facc15; }
+.heatmap-legend__dot--mid { background: #f97316; }
+.heatmap-legend__dot--high { background: #dc2626; }

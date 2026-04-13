@@ -1,6 +1,7 @@
 // straywatchsvp/src/components/HeatmapLayer.jsx
 import { useEffect, useRef } from 'react'
 import { subscribeToSightings, unsubscribeFromSightings } from '../lib/supabase'
+import { getWardViewport } from '../lib/wardDetect'
 
 const MAP_CENTER = [11.6650, 92.7310] // Port Blair
 const MAP_ZOOM = 13
@@ -29,7 +30,8 @@ export default function HeatmapLayer({ sightings, height = '420px', wardFilter =
     const map = window.L.map(containerRef.current, {
       center: MAP_CENTER,
       zoom: MAP_ZOOM,
-      zoomControl: true
+      zoomControl: true,
+      scrollWheelZoom: true
     })
     mapRef.current = map
 
@@ -42,12 +44,12 @@ export default function HeatmapLayer({ sightings, height = '420px', wardFilter =
     const legend = window.L.control({ position: 'bottomleft' })
     legend.onAdd = () => {
       const div = window.L.DomUtil.create('div')
-      div.style.cssText = 'background:white;padding:6px 10px;border-radius:6px;border:1px solid #e5e7eb;font-size:11px;line-height:1.8'
+      div.className = 'heatmap-legend'
       div.innerHTML = `
-        <div style="font-weight:600;margin-bottom:2px;color:#374151">Dog density</div>
-        <div><span style="color:#facc15;font-size:14px">●</span> Low</div>
-        <div><span style="color:#f97316;font-size:14px">●</span> Medium</div>
-        <div><span style="color:#dc2626;font-size:14px">●</span> High</div>
+        <div class="heatmap-legend__title">Dog density</div>
+        <div><span class="heatmap-legend__dot heatmap-legend__dot--low"></span>Low</div>
+        <div><span class="heatmap-legend__dot heatmap-legend__dot--mid"></span>Medium</div>
+        <div><span class="heatmap-legend__dot heatmap-legend__dot--high"></span>High</div>
       `
       return div
     }
@@ -80,6 +82,29 @@ export default function HeatmapLayer({ sightings, height = '420px', wardFilter =
     }
   }, [sightings, wardFilter])
 
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    if (!wardFilter) {
+      map.setView(MAP_CENTER, MAP_ZOOM, { animate: true })
+      return
+    }
+
+    getWardViewport(wardFilter).then((viewport) => {
+      if (!viewport || mapRef.current !== map) return
+
+      if (viewport.type === 'bounds') {
+        map.fitBounds(viewport.bounds, { padding: [30, 30], maxZoom: 16, animate: true })
+        return
+      }
+
+      if (viewport.type === 'center') {
+        map.setView(viewport.center, viewport.zoom || 15, { animate: true })
+      }
+    })
+  }, [wardFilter])
+
   // Realtime: subscribe to new inserts and append to heatmap
   useEffect(() => {
     const channel = subscribeToSightings((newSighting) => {
@@ -97,7 +122,7 @@ export default function HeatmapLayer({ sightings, height = '420px', wardFilter =
     <div
       ref={containerRef}
       style={{ height, width: '100%', borderRadius: '8px', overflow: 'hidden', zIndex: 0 }}
-      className="border border-gray-200"
+      className="border border-white/60 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)]"
     />
   )
 }

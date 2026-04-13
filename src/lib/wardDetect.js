@@ -3,7 +3,7 @@ import * as turf from '@turf/turf'
 
 let wardGeoJSON = null
 
-async function loadWards() {
+export async function loadWards() {
   if (wardGeoJSON) return wardGeoJSON
   try {
     const res = await fetch('/ward-boundaries.geojson')
@@ -73,6 +73,42 @@ export function nearestWardFallback(latitude, longitude) {
     if (d < minDist) { minDist = d; nearest = w }
   }
   return nearest ? { ward_id: nearest.ward_id, ward_name: nearest.ward_name } : null
+}
+
+export function getWardCentroid(wardId) {
+  const ward = WARD_CENTROIDS.find((item) => item.ward_id === wardId)
+  return ward ? { lat: ward.lat, lng: ward.lng, ward_name: ward.ward_name } : null
+}
+
+export async function getWardViewport(wardId) {
+  const geojson = await loadWards()
+
+  if (geojson?.features) {
+    const feature = geojson.features.find((item) => item.properties?.ward_id === wardId)
+    if (feature) {
+      try {
+        const bbox = turf.bbox(feature)
+        return {
+          type: 'bounds',
+          bounds: [
+            [bbox[1], bbox[0]],
+            [bbox[3], bbox[2]]
+          ]
+        }
+      } catch {
+        // Fall through to centroid below if bounds computation fails
+      }
+    }
+  }
+
+  const centroid = getWardCentroid(wardId)
+  if (!centroid) return null
+
+  return {
+    type: 'center',
+    center: [centroid.lat, centroid.lng],
+    zoom: 15
+  }
 }
 
 // Unified ward detection: try GeoJSON polygon first, fallback to centroid distance
