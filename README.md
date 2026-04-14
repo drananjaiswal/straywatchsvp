@@ -64,6 +64,8 @@ These are Vite client env vars, so the `VITE_` prefix is required.
 
 No other variables are needed.
 
+On startup, the app also performs a lightweight schema check against `sightings` and `wards`. If Vercel is pointed at the wrong Supabase project, the UI will now fail fast with a clear backend-mismatch message instead of surfacing confusing submission errors later.
+
 ### 4. Run locally
 
 ```bash
