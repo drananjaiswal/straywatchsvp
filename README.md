@@ -60,6 +60,8 @@ VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
+These are Vite client env vars, so the `VITE_` prefix is required.
+
 No other variables are needed.
 
 ### 4. Run locally
