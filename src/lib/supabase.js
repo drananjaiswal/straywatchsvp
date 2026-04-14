@@ -27,6 +27,16 @@ export function onAuthStateChange(callback) {
   return supabase.auth.onAuthStateChange((_event, session) => callback(session))
 }
 
+export async function signInAdminWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/admin`
+    }
+  })
+  return { data, error }
+}
+
 export async function signInAdmin(email) {
   const { data, error } = await supabase.auth.signInWithOtp({
     email,

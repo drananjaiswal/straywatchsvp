@@ -6,7 +6,7 @@ import {
   isCurrentUserAdmin,
   onAuthStateChange,
   restoreAllSightings,
-  signInAdmin,
+  signInAdminWithGoogle,
   signOutAdmin
 } from '../lib/supabase'
 
@@ -14,10 +14,9 @@ export default function AdminPage() {
   const [session, setSession] = useState(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [adminReady, setAdminReady] = useState(false)
-  const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [sendingLink, setSendingLink] = useState(false)
+  const [startingGoogleSignIn, setStartingGoogleSignIn] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
   const [submittingAction, setSubmittingAction] = useState(false)
   const [sightings, setSightings] = useState([])
@@ -97,20 +96,19 @@ export default function AdminPage() {
     setLoadingData(false)
   }
 
-  async function handleSendLink(e) {
-    e.preventDefault()
-    setSendingLink(true)
+  async function handleGoogleSignIn() {
+    setStartingGoogleSignIn(true)
     setError('')
     setMessage('')
-    const { error: signInError } = await signInAdmin(email.trim())
-    setSendingLink(false)
+    const { error: signInError } = await signInAdminWithGoogle()
+    setStartingGoogleSignIn(false)
 
     if (signInError) {
-      setError(signInError.message || 'Could not send sign-in link.')
+      setError(signInError.message || 'Could not start Google sign-in.')
       return
     }
 
-    setMessage('Magic link sent. Open it from your email on this device to access the admin panel.')
+    setMessage('Redirecting to Google sign-in...')
   }
 
   async function handleHideAll() {
@@ -168,30 +166,26 @@ export default function AdminPage() {
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Admin Access</h1>
             <p className="text-sm text-gray-500 mt-1">
-              Sign in with your approved admin email to manage heatmap visibility.
+              Sign in with your approved Google account to manage heatmap visibility.
             </p>
           </div>
 
-          <form onSubmit={handleSendLink} className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-            <label className="block text-sm text-gray-700">
-              Admin email
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-400"
-                placeholder="you@example.com"
-                required
-              />
-            </label>
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+            <div className="rounded-xl border border-green-100 bg-green-50/70 px-4 py-3 text-sm text-green-900">
+              Use the same Google account that has been approved in the <code>admin_users</code> table.
+            </div>
             <button
-              type="submit"
-              disabled={sendingLink}
-              className="w-full py-2.5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black disabled:opacity-60"
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={startingGoogleSignIn}
+              className="w-full py-3 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black disabled:opacity-60"
             >
-              {sendingLink ? 'Sending link...' : 'Send magic link'}
+              {startingGoogleSignIn ? 'Opening Google sign-in...' : 'Continue with Google'}
             </button>
-          </form>
+            <p className="text-xs text-gray-500">
+              After Google signs you in, StrayWatch still checks whether your email is approved for admin access.
+            </p>
+          </div>
 
           {message && <Notice tone="success">{message}</Notice>}
           {error && <Notice tone="error">{error}</Notice>}
