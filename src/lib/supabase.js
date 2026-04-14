@@ -12,6 +12,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+const EXPECTED_SIGHTING_COLUMNS = 'id, latitude, longitude, ward_id, ward_name, dog_count, address, created_at'
+const EXPECTED_WARD_COLUMNS = 'id, name'
+
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession()
   return { data: data?.session || null, error }
@@ -38,6 +41,35 @@ export async function signOutAdmin() {
 export async function isCurrentUserAdmin() {
   const { data, error } = await supabase.rpc('is_current_user_admin')
   return { data: Boolean(data), error }
+}
+
+export async function validateBackendSchema() {
+  const [{ error: sightingsError }, { error: wardsError }] = await Promise.all([
+    supabase.from('sightings').select(EXPECTED_SIGHTING_COLUMNS).limit(1),
+    supabase.from('wards').select(EXPECTED_WARD_COLUMNS).limit(1)
+  ])
+
+  const schemaError = sightingsError || wardsError
+
+  if (!schemaError) {
+    return { ok: true, error: null }
+  }
+
+  const isSchemaMismatch = schemaError.code === 'PGRST204' || schemaError.code === '42P01'
+
+  if (!isSchemaMismatch) {
+    return { ok: true, error: null }
+  }
+
+  return {
+    ok: false,
+    error: {
+      code: schemaError.code,
+      message:
+        'This frontend is connected to a Supabase project that does not match the StrayWatch SVP schema. Check VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and the live migration.',
+      details: schemaError.message || schemaError.details || null
+    }
+  }
 }
 
 // Submit a new sighting. Returns { data, error }.
