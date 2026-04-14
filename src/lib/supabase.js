@@ -35,18 +35,15 @@ export async function isCurrentUserAdmin() {
 }
 
 // Submit a new sighting. Returns { data, error }.
-// error.code === '23505' means dedupe_hash collision (friendly duplicate).
-// Note: .single() removed — Safari's Supabase JS v2 throws PGRST116 when
-// RLS blocks the post-insert SELECT, causing false "Submission failed" errors
-// even when the INSERT succeeded. We use .select() without .single() and
-// treat PGRST116 (no rows returned) as a success.
+// We intentionally do not request a post-insert SELECT here.
+// That keeps submission resilient even if PostgREST schema cache lags behind
+// recent table changes, and it avoids Safari/RLS false negatives.
 const DEDUPE_CONSTRAINT = 'sightings_dedupe_hash_unique'
 
 export async function submitSighting({ latitude, longitude, ward_id, ward_name, dog_count, notes, address }) {
   const { data, error } = await supabase
     .from('sightings')
     .insert([{ latitude, longitude, ward_id, ward_name, dog_count, notes: notes || null, address }])
-    .select()
 
   if (error) {
     // Log full error so Safari DevTools shows root cause
@@ -57,17 +54,10 @@ export async function submitSighting({ latitude, longitude, ward_id, ward_name, 
       return { data: null, error: { code: '23505', message: 'duplicate' } }
     }
 
-    // PGRST116 = "no rows returned" after insert — INSERT succeeded but RLS
-    // blocked the SELECT. Treat as success to avoid false failure on Safari.
-    if (error.code === 'PGRST116') {
-      console.warn('[StrayWatch] Insert succeeded but SELECT returned no rows (RLS). Treating as success.')
-      return { data: {}, error: null }
-    }
-
     return { data: null, error }
   }
 
-  return { data: data?.[0] || {}, error: null }
+  return { data: data || {}, error: null }
 }
 
 // Fetch all sightings for heatmap and summary (last 90 days for heatmap, 30 for ward summary)
