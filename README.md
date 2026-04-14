@@ -66,6 +66,8 @@ No other variables are needed.
 
 On startup, the app also performs a lightweight schema check against `sightings` and `wards`. If Vercel is pointed at the wrong Supabase project, the UI will now fail fast with a clear backend-mismatch message instead of surfacing confusing submission errors later.
 
+For reuse across future products, the migration also seeds an `app_metadata` identity record. The frontend verifies `app_key` and minimum `schema_version` on startup before falling back to table-shape checks. Reusing this pattern in other apps helps catch cross-project environment mixups early.
+
 ### 4. Run locally
 
 ```bash
