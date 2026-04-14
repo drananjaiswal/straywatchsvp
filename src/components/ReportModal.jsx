@@ -114,6 +114,8 @@ export default function ReportModal({ onClose, onSuccess }) {
         if (error.code === '23505') {
           setIsDuplicate(true)
           setSubmitted(true)
+        } else if (error.code === 'BACKEND_MISMATCH') {
+          setSubmitError('Submission is temporarily unavailable because the live backend configuration does not match this app. Please ask the admin to verify Supabase settings.')
         } else {
           console.error('[StrayWatch] Submit error in modal:', error)
           setSubmitError(`Submission failed (${error.code || error.message || 'unknown error'}). Please try again.`)

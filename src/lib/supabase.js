@@ -123,6 +123,17 @@ export async function submitSighting({ latitude, longitude, ward_id, ward_name, 
       return { data: null, error: { code: '23505', message: 'duplicate' } }
     }
 
+    if (error.code === 'PGRST204' || error.code === '42P01') {
+      return {
+        data: null,
+        error: {
+          code: 'BACKEND_MISMATCH',
+          message:
+            'This app is connected to a Supabase project that does not match the StrayWatch schema. Please check the live backend configuration.'
+        }
+      }
+    }
+
     return { data: null, error }
   }
 
