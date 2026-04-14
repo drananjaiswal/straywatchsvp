@@ -224,6 +224,17 @@ begin
 end;
 $$;
 
+create or replace function increment_corroboration(sighting_id uuid)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update sightings
+  set corroborations = corroborations + 1
+  where id = sighting_id;
+$$;
+
 -- Seed wards 1-24
 insert into wards (id, name, councillor_name, councillor_phone, councillor_email) values
 (1,  'Ward 1 - Aberdeen Bazaar',       'Ward 1 Councillor',  '03192-000001', 'ward1@pbmc.gov.in'),
