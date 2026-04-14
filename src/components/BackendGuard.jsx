@@ -43,7 +43,7 @@ export default function BackendGuard({ children }) {
           </div>
           <h1 className="mt-4 text-2xl font-semibold text-slate-900">StrayWatch is connected to the wrong Supabase schema</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            The frontend expects the StrayWatch SVP tables and columns, but the connected backend does not match.
+            The frontend expects the StrayWatch SVP backend identity and schema, but the connected backend does not match.
             This usually means Vercel is using the wrong `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY`, or the
             StrayWatch migration has not been applied to the active Supabase project.
           </p>
@@ -51,8 +51,9 @@ export default function BackendGuard({ children }) {
           <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
             <div className="font-semibold text-slate-900">What to check</div>
             <div className="mt-2">1. Vercel environment variables point to the StrayWatch Supabase project</div>
-            <div>2. The live database has `sightings` columns like `latitude`, `longitude`, `ward_id`, and `dog_count`</div>
-            <div>3. The live database has the `wards` table from `supabase/migration.sql`</div>
+            <div>2. The live database has `app_metadata.app_key = straywatchsvp`</div>
+            <div>3. The live database has `sightings` columns like `latitude`, `longitude`, `ward_id`, and `dog_count`</div>
+            <div>4. The live database has the `wards` table from `supabase/migration.sql`</div>
           </div>
 
           <div className="mt-5 text-xs text-slate-500">

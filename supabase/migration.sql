@@ -93,11 +93,19 @@ create table if not exists admin_actions (
   details          text
 );
 
+create table if not exists app_metadata (
+  app_key          text primary key,
+  app_name         text not null,
+  schema_version   integer not null,
+  updated_at       timestamptz not null default now()
+);
+
 -- RLS
 alter table sightings enable row level security;
 alter table wards enable row level security;
 alter table admin_users enable row level security;
 alter table admin_actions enable row level security;
+alter table app_metadata enable row level security;
 
 -- anon can insert sightings
 create policy "anon insert sightings"
@@ -140,6 +148,10 @@ create policy "anon corroborate sightings"
 -- wards: public read
 create policy "anon select wards"
   on wards for select to anon
+  using (true);
+
+create policy "anon read app metadata"
+  on app_metadata for select to anon
   using (true);
 
 create policy "admin can read own admin record"
@@ -234,6 +246,13 @@ as $$
   set corroborations = corroborations + 1
   where id = sighting_id;
 $$;
+
+insert into app_metadata (app_key, app_name, schema_version)
+values ('straywatchsvp', 'StrayWatch SVP', 1)
+on conflict (app_key) do update
+set app_name = excluded.app_name,
+    schema_version = excluded.schema_version,
+    updated_at = now();
 
 -- Seed wards 1-24
 insert into wards (id, name, councillor_name, councillor_phone, councillor_email) values

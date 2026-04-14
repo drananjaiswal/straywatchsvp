@@ -12,6 +12,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+const EXPECTED_APP_KEY = 'straywatchsvp'
+const EXPECTED_APP_NAME = 'StrayWatch SVP'
+const MIN_SCHEMA_VERSION = 1
 const EXPECTED_SIGHTING_COLUMNS = 'id, latitude, longitude, ward_id, ward_name, dog_count, address, created_at'
 const EXPECTED_WARD_COLUMNS = 'id, name'
 
@@ -44,18 +47,46 @@ export async function isCurrentUserAdmin() {
 }
 
 export async function validateBackendSchema() {
+  const { data: metadata, error: metadataError } = await supabase
+    .from('app_metadata')
+    .select('app_key, app_name, schema_version')
+    .eq('app_key', EXPECTED_APP_KEY)
+    .maybeSingle()
+
+  if (!metadataError && metadata) {
+    const versionOk = Number(metadata.schema_version) >= MIN_SCHEMA_VERSION
+    const keyOk = metadata.app_key === EXPECTED_APP_KEY
+
+    if (keyOk && versionOk) {
+      return { ok: true, error: null }
+    }
+
+    return {
+      ok: false,
+      error: {
+        code: 'APP_METADATA_MISMATCH',
+        message:
+          `This frontend expects ${EXPECTED_APP_NAME} metadata (${EXPECTED_APP_KEY}, schema v${MIN_SCHEMA_VERSION}+), but the connected backend does not match.`,
+        details: `Received app_key=${metadata.app_key || 'unknown'}, schema_version=${metadata.schema_version || 'unknown'}`
+      }
+    }
+  }
+
   const [{ error: sightingsError }, { error: wardsError }] = await Promise.all([
     supabase.from('sightings').select(EXPECTED_SIGHTING_COLUMNS).limit(1),
     supabase.from('wards').select(EXPECTED_WARD_COLUMNS).limit(1)
   ])
 
-  const schemaError = sightingsError || wardsError
+  const schemaError = metadataError || sightingsError || wardsError
 
   if (!schemaError) {
     return { ok: true, error: null }
   }
 
-  const isSchemaMismatch = schemaError.code === 'PGRST204' || schemaError.code === '42P01'
+  const isSchemaMismatch =
+    schemaError.code === 'PGRST204' ||
+    schemaError.code === '42P01' ||
+    schemaError.code === 'PGRST116'
 
   if (!isSchemaMismatch) {
     return { ok: true, error: null }
@@ -66,7 +97,7 @@ export async function validateBackendSchema() {
     error: {
       code: schemaError.code,
       message:
-        'This frontend is connected to a Supabase project that does not match the StrayWatch SVP schema. Check VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and the live migration.',
+        'This frontend is connected to a Supabase project that does not match the StrayWatch SVP backend identity or schema. Check VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and the live migration.',
       details: schemaError.message || schemaError.details || null
     }
   }
