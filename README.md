@@ -135,7 +135,7 @@ Residents can tap "I also see strays in Ward N" on ward cards without filing a n
 
 ### Admin controls
 
-The same app includes an `/admin` route protected by Supabase Auth magic-link sign-in. Approved admin emails stored in the `admin_users` table can soft-clear the heatmap by hiding all sightings, then restore them later without deleting history. Admin actions are logged in `admin_actions`.
+The same app includes an `/admin` route protected by Supabase Auth Google sign-in. Approved admin emails stored in the `admin_users` table can soft-clear the heatmap by hiding all sightings, then restore them later without deleting history. Admin actions are logged in `admin_actions`.
 
 ### Rate limiting
 
@@ -150,6 +150,12 @@ The platform displays a persistent, dismissible disclaimer on all public-facing 
 ## Ward boundaries
 
 Place the official ward boundary GeoJSON file at `public/ward-boundaries.geojson`. The GeoJSON must include `ward_id` (integer 1–24) and `ward_name` (string) as feature properties. Until this file is added, ward detection falls back to nearest-centroid distance using hardcoded Port Blair ward centroids in `src/lib/wardDetect.js`.
+
+---
+
+## Future Workflow
+
+For a reusable setup checklist covering GitHub, Vercel, Supabase, backend identity, admin auth, and deployment verification, see [WORKFLOW.md](/Users/dranan/Documents/New%20project/straywatchsvp/WORKFLOW.md).
 
 ---
 
